@@ -1,0 +1,80 @@
+# GRPO Training Config — Stage 1: Confidence Expression Calibration
+#
+# Trains the model to answer questions AND express well-calibrated
+# confidence scores using GRPO with LoRA.
+#
+# Usage:
+#   python training/grpo_confidence.py --config configs/grpo_confidence.yaml
+#   # Multi-GPU:
+#   accelerate launch training/grpo_confidence.py --config configs/grpo_confidence.yaml
+
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  cache_dir: null                   # Set to local path for cached weights
+  device_map: "auto"
+  torch_dtype: "bfloat16"
+
+lora:
+  r: 64
+  lora_alpha: 32
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+data:
+  train_file: "data/example_train.json"   # JSON with prompt, label, dataset, fold
+  train_split: "train"
+  shuffle: true
+  seed: 42
+
+training:
+  output_dir: "./checkpoints/grpo_confidence"
+  num_train_epochs: 1
+  max_steps: -1                     # -1 = use epochs; set >0 to train by steps
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-6
+  warmup_steps: 300
+  max_grad_norm: 1.0
+  weight_decay: 0.01
+  logging_steps: 1
+  save_steps: 500
+  save_total_limit: 5
+
+  # GRPO hyper-parameters
+  temperature: 1.0
+  top_p: 1.0
+  max_completion_length: 1024
+  use_vllm: false
+  num_generations: 4
+  beta: 0.01                        # KL regularisation coefficient
+
+  # ── Confidence ablation ──
+  # Set to false to disable all confidence-related computation
+  # (only answer correctness and length are rewarded).
+  use_confidence: true
+
+  # ── Reward scaling ──
+  correctness_scale: 10.0
+  confidence_scale: 5.0             # Ignored when use_confidence=false
+  length_scale: 2.0
+  wrong_format_penalty: -30.0
+
+  # ── Length reward zones ──
+  # Zone 1 [0, lower_bound):  reward increases linearly  (0 → max)
+  # Zone 2 [lower_bound, upper_bound]:  maximum reward
+  # Zone 3 (upper_bound, +∞):  penalty increases linearly
+  length_lower_bound: 256
+  length_upper_bound: 512
+
+  # ── Logging ──
+  num_samples_to_log: 10
+  log_frequency: 100
+
+wandb:
+  enabled: true
+  project: "dmad-grpo"
+  name: "stage1-confidence"
+  entity: null

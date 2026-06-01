@@ -1,0 +1,31 @@
+# Configuration for multi-agent debate with Llama-3.1-8B-Instruct
+# Usage: python inference/vllm_debate.py --config configs/debate_llama.yaml
+
+model:
+  name: "meta-llama/Llama-3.1-8B-Instruct"
+  dtype: "float16"
+  gpu_memory_utilization: 0.85
+  tensor_parallel_size: 1
+  # Optional: path to LoRA adapter (uncomment to use a fine-tuned model)
+  # lora_path: "path/to/lora/adapter"
+  # max_lora_rank: 64
+
+debate:
+  num_agents: 5        # Number of debating agents (N)
+  num_rounds: 5        # Number of debate rounds (T)
+  use_confidence: true  # Whether agents express confidence (0-10)
+
+sampling:
+  temperature: 1.0
+  max_tokens: 1024
+  top_p: 0.9
+  top_k: -1
+
+data:
+  input_csv: "data/debate_data.csv"      # CSV with columns: fold, dataset, question, label
+  output_dir: "./results/debate_llama"
+  batch_size: 1000                        # Questions processed per vLLM batch
+
+logging:
+  save_full_history: true   # Save full agent responses per round
+  save_prompts: false       # Save formatted prompts (large files)

@@ -1,0 +1,77 @@
+# GRPO Training Config — Stage 2: Confidence Perception & Usage in Debate
+#
+# Trains the model to USE other agents' confidence during multi-agent
+# debate revision.  Extends Stage 1 with debate engagement rewards.
+#
+# Usage:
+#   python training/grpo_debate.py --config configs/grpo_debate.yaml
+
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  cache_dir: null
+  device_map: "auto"
+  torch_dtype: "bfloat16"
+
+lora:
+  r: 64
+  lora_alpha: 32
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+data:
+  # JSON with: question, label, dataset, fold, outputs (list of agent
+  # responses), random/low_diversity/high_diversity (index lists)
+  train_file: "data/example_debate_train.json"
+  train_split: "train"
+  shuffle: true
+  seed: 42
+
+training:
+  output_dir: "./checkpoints/grpo_debate"
+  num_train_epochs: 1
+  max_steps: -1
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-6
+  warmup_steps: 300
+  max_grad_norm: 1.0
+  weight_decay: 0.01
+  logging_steps: 1
+  save_steps: 500
+  save_total_limit: 5
+
+  # GRPO
+  temperature: 1.0
+  top_p: 1.0
+  max_completion_length: 1024
+  use_vllm: false
+  num_generations: 4
+  beta: 0.01
+
+  # Confidence
+  use_confidence: true
+
+  # Reward scaling
+  correctness_scale: 10.0
+  confidence_scale: 5.0
+  length_scale: 2.0
+  format_order_scale: 1.0          # Reward for correct XML tag order
+  engagement_scale: 3.0            # Reward for engaging with others' reasoning
+  wrong_format_penalty: -30.0
+
+  # Length
+  length_lower_bound: 256
+  length_upper_bound: 512
+
+  # Logging
+  num_samples_to_log: 10
+  log_frequency: 100
+
+wandb:
+  enabled: true
+  project: "dmad-grpo"
+  name: "stage2-debate"
+  entity: null

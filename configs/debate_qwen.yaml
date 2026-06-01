@@ -1,0 +1,30 @@
+# Configuration for multi-agent debate with Qwen2.5-7B-Instruct
+# Usage: python inference/vllm_debate.py --config configs/debate_qwen.yaml
+
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  dtype: "bfloat16"
+  gpu_memory_utilization: 0.85
+  tensor_parallel_size: 1
+  # Optional: path to LoRA adapter
+  # lora_path: "path/to/lora/adapter"
+
+debate:
+  num_agents: 5
+  num_rounds: 5
+  use_confidence: true
+
+sampling:
+  temperature: 1.0
+  max_tokens: 1024
+  top_p: 0.9
+  top_k: -1
+
+data:
+  input_csv: "data/debate_data.csv"
+  output_dir: "./results/debate_qwen"
+  batch_size: 1000
+
+logging:
+  save_full_history: true
+  save_prompts: false
